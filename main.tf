@@ -46,12 +46,12 @@ resource "aws_route53_record" "website" {
   type    = "A"
 
   alias {
-    name                   = aws_s3_bucket.website.bucket_regional_domain_name
-    zone_id                = aws_s3_bucket.website.hosted_zone_id
+    name                   = aws_cloudfront_distribution.website.domain_name
+    zone_id                = aws_cloudfront_distribution.website.hosted_zone_id
     evaluate_target_health = false
   }
 
-  depends_on = [aws_s3_bucket.website, aws_route53_zone.example]
+  depends_on = [aws_cloudfront_distribution.website, aws_route53_zone.example]
 }
 
 # Create the CloudFront distribution for the S3 bucket
