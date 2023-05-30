@@ -29,16 +29,6 @@ resource "aws_route53_zone" "example" {
   name = "opeluther001.com"  # Replace with your desired domain name
 }
 
-# Create an ACM certificate
-resource "aws_acm_certificate" "example" {
-  domain_name       = "opeluther001.com"  # Replace with your domain name
-  validation_method = "DNS"
-
-  lifecycle {
-    create_before_destroy = true
-  }
-}
-
 # Create the CloudFront distribution for the S3 bucket
 resource "aws_cloudfront_distribution" "website" {
   origin {
@@ -57,7 +47,7 @@ resource "aws_cloudfront_distribution" "website" {
         forward = "none"
       }
     }
-    viewer_protocol_policy = "redirect-to-https"
+    viewer_protocol_policy = "redirect-to-http"  # Update to redirect-to-http
     min_ttl                = 0
     default_ttl            = 3600
     max_ttl                = 86400
@@ -69,11 +59,6 @@ resource "aws_cloudfront_distribution" "website" {
     geo_restriction {
       restriction_type = "none"
     }
-  }
-
-  viewer_certificate {
-    acm_certificate_arn = aws_acm_certificate.example.arn
-    ssl_support_method  = "sni-only"
   }
 
   aliases = ["opeluther001.com"]  # Replace with your desired domain name
@@ -102,8 +87,4 @@ output "domain_name" {
 
 output "zone_id" {
   value = aws_route53_zone.example.zone_id
-}
-
-output "acm_certificate_arn" {
-  value = aws_acm_certificate.example.arn
 }
