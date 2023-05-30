@@ -39,9 +39,14 @@ resource "aws_acm_certificate" "example" {
   }
 }
 
+# Convert domain_validation_options set to a map
+locals {
+  domain_validation_options_map = { for option in aws_acm_certificate.example.domain_validation_options : option.domain_name => option }
+}
+
 # Create the ACM certificate validation records
 resource "aws_route53_record" "acm_validation" {
-  for_each = aws_acm_certificate.example.domain_validation_options
+  for_each = local.domain_validation_options_map
 
   zone_id = aws_route53_zone.example.zone_id
   name    = each.value.resource_record_name
@@ -55,7 +60,7 @@ resource "aws_route53_record" "acm_validation" {
 # Wait for the ACM certificate validation to complete
 resource "aws_acm_certificate_validation" "example" {
   certificate_arn         = aws_acm_certificate.example.arn
-  validation_record_fqdns = [for record in aws_acm_certificate.example.domain_validation_options : aws_route53_record.acm_validation[record.domain_name].fqdn]
+  validation_record_fqdns = [for record in values(local.domain_validation_options_map) : aws_route53_record.acm_validation[record.domain_name].fqdn]
 
   depends_on = [aws_route53_record.acm_validation]
 }
@@ -99,7 +104,7 @@ resource "aws_cloudfront_distribution" "website" {
 
   aliases = ["opeluther001.com"]  # Replace with your desired domain name
 
-  depends_on = [aws_route53_zone.example, aws_acm_certificate_validation.example]
+  depends_on = [aws_route53_zone.example]
 }
 
 # Create a Route53 record pointing to the CloudFront distribution
