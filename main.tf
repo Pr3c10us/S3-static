@@ -7,14 +7,6 @@ resource "aws_s3_bucket" "website" {
   bucket = "bakri-20-15-29"
 }
 
-# Set the ACL for the S3 bucket
-resource "aws_s3_bucket_acl" "website" {
-  bucket = aws_s3_bucket.website.id
-
-  # Set the bucket ACL to public-read
-  acl = "public-read"
-}
-
 # Configure the website properties of the S3 bucket
 resource "aws_s3_bucket_website_configuration" "website" {
   bucket = aws_s3_bucket.website.id
@@ -29,7 +21,7 @@ resource "null_resource" "upload_html" {
     command = "aws s3 cp index.html s3://${aws_s3_bucket.website.id}/index.html"
   }
 
-  depends_on = [aws_s3_bucket_acl.website]
+  depends_on = [aws_s3_bucket.website]
 }
 
 # Create a Route53 zone
