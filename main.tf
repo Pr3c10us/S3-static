@@ -39,6 +39,21 @@ resource "aws_acm_certificate" "example" {
   }
 }
 
+# Create a Route53 record pointing to the CloudFront distribution
+resource "aws_route53_record" "website" {
+  zone_id = aws_route53_zone.example.zone_id
+  name    = "opeluther001.com"  # Replace with your desired domain name
+  type    = "A"
+
+  alias {
+    name                   = aws_cloudfront_distribution.website.domain_name
+    zone_id                = aws_cloudfront_distribution.website.hosted_zone_id
+    evaluate_target_health = false
+  }
+
+  depends_on = [aws_route53_zone.example]
+}
+
 # Create the CloudFront distribution for the S3 bucket
 resource "aws_cloudfront_distribution" "website" {
   origin {
@@ -77,21 +92,8 @@ resource "aws_cloudfront_distribution" "website" {
   }
 
   aliases = ["opeluther001.com"]  # Replace with your desired domain name
-}
 
-# Create a Route53 record pointing to the CloudFront distribution
-resource "aws_route53_record" "website" {
-  zone_id = aws_route53_zone.example.zone_id
-  name    = "opeluther001.com"  # Replace with your desired domain name
-  type    = "A"
-
-  alias {
-    name                   = aws_cloudfront_distribution.website.domain_name
-    zone_id                = aws_cloudfront_distribution.website.hosted_zone_id
-    evaluate_target_health = false
-  }
-
-  depends_on = [aws_route53_zone.example]
+  depends_on = [aws_route53_record.website, aws_acm_certificate.example]
 }
 
 output "domain_name" {
