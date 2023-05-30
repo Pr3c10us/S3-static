@@ -39,9 +39,23 @@ resource "aws_acm_certificate" "example" {
   }
 }
 
-# Retrieve the ACM certificate validation records
-data "aws_acm_certificate_validation" "example" {
-  certificate_arn = aws_acm_certificate.example.arn
+# Create the ACM certificate validation record
+resource "aws_route53_record" "acm_validation" {
+  zone_id = aws_route53_zone.example.zone_id
+  name    = aws_acm_certificate.example.domain_validation_options.0.resource_record_name
+  type    = aws_acm_certificate.example.domain_validation_options.0.resource_record_type
+  ttl     = 300
+  records = [aws_acm_certificate.example.domain_validation_options.0.resource_record_value]
+
+  depends_on = [aws_route53_zone.example, aws_acm_certificate.example]
+}
+
+# Wait for the ACM certificate validation to complete
+resource "aws_acm_certificate_validation" "example" {
+  certificate_arn         = aws_acm_certificate.example.arn
+  validation_record_fqdns = [aws_route53_record.acm_validation.fqdn]
+
+  depends_on = [aws_route53_record.acm_validation]
 }
 
 # Create the CloudFront distribution for the S3 bucket
@@ -83,7 +97,7 @@ resource "aws_cloudfront_distribution" "website" {
 
   aliases = ["opeluther001.com"]  # Replace with your desired domain name
 
-  depends_on = [aws_route53_zone.example]
+  depends_on = [aws_route53_zone.example, aws_acm_certificate_validation.example]
 }
 
 # Create a Route53 record pointing to the CloudFront distribution
