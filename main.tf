@@ -47,7 +47,7 @@ resource "aws_cloudfront_distribution" "website" {
         forward = "none"
       }
     }
-    viewer_protocol_policy = "redirect-to-http"  # Update to redirect-to-http
+    viewer_protocol_policy = "redirect-to-http"
     min_ttl                = 0
     default_ttl            = 3600
     max_ttl                = 86400
@@ -59,6 +59,11 @@ resource "aws_cloudfront_distribution" "website" {
     geo_restriction {
       restriction_type = "none"
     }
+  }
+
+  viewer_certificate {
+    acm_certificate_arn = "dummy"
+    ssl_support_method  = "sni-only"
   }
 
   aliases = ["opeluther001.com"]  # Replace with your desired domain name
