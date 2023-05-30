@@ -39,6 +39,11 @@ resource "aws_acm_certificate" "example" {
   }
 }
 
+# Retrieve the ACM certificate validation records
+data "aws_acm_certificate_validation" "example" {
+  certificate_arn = aws_acm_certificate.example.arn
+}
+
 # Create the CloudFront distribution for the S3 bucket
 resource "aws_cloudfront_distribution" "website" {
   origin {
@@ -57,7 +62,7 @@ resource "aws_cloudfront_distribution" "website" {
         forward = "none"
       }
     }
-    viewer_protocol_policy = "redirect-to-https"
+    viewer_protocol_policy = "redirect-to-http"
     min_ttl                = 0
     default_ttl            = 3600
     max_ttl                = 86400
