@@ -39,13 +39,15 @@ resource "aws_acm_certificate" "example" {
   }
 }
 
-# Create the ACM certificate validation record
+# Create the ACM certificate validation records
 resource "aws_route53_record" "acm_validation" {
+  for_each = aws_acm_certificate.example.domain_validation_options
+
   zone_id = aws_route53_zone.example.zone_id
-  name    = aws_acm_certificate.example.domain_validation_options.0.resource_record_name
-  type    = aws_acm_certificate.example.domain_validation_options.0.resource_record_type
+  name    = each.value.resource_record_name
+  type    = each.value.resource_record_type
   ttl     = 300
-  records = [aws_acm_certificate.example.domain_validation_options.0.resource_record_value]
+  records = [each.value.resource_record_value]
 
   depends_on = [aws_route53_zone.example, aws_acm_certificate.example]
 }
@@ -53,7 +55,7 @@ resource "aws_route53_record" "acm_validation" {
 # Wait for the ACM certificate validation to complete
 resource "aws_acm_certificate_validation" "example" {
   certificate_arn         = aws_acm_certificate.example.arn
-  validation_record_fqdns = [aws_route53_record.acm_validation.fqdn]
+  validation_record_fqdns = [for record in aws_acm_certificate.example.domain_validation_options : aws_route53_record.acm_validation[record.domain_name].fqdn]
 
   depends_on = [aws_route53_record.acm_validation]
 }
