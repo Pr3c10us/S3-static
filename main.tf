@@ -1,34 +1,3 @@
-provider "aws" {
-  region = "us-east-1"  # Replace with your desired AWS region
-}
-
-# Create the S3 bucket for the static website
-resource "aws_s3_bucket" "website" {
-  bucket = "bakri-20-15-29"
-}
-
-# Configure the website properties of the S3 bucket
-resource "aws_s3_bucket_website_configuration" "website" {
-  bucket = aws_s3_bucket.website.id
-  index_document {
-    suffix = "index.html"
-  }
-}
-
-# Upload the HTML file to the S3 bucket
-resource "null_resource" "upload_html" {
-  provisioner "local-exec" {
-    command = "aws s3 cp index.html s3://${aws_s3_bucket.website.id}/index.html"
-  }
-
-  depends_on = [aws_s3_bucket.website]
-}
-
-# Create a Route53 zone
-resource "aws_route53_zone" "example" {
-  name = "opeluther001.com"  # Replace with your desired domain name
-}
-
 # Create the CloudFront distribution for the S3 bucket
 resource "aws_cloudfront_distribution" "website" {
   origin {
@@ -61,30 +30,11 @@ resource "aws_cloudfront_distribution" "website" {
     }
   }
 
+  viewer_certificate {
+    cloudfront_default_certificate = true
+  }
+
   aliases = ["opeluther001.com"]  # Replace with your desired domain name
 
   depends_on = [aws_route53_zone.example]
-}
-
-# Create a Route53 record pointing to the CloudFront distribution
-resource "aws_route53_record" "website" {
-  zone_id = aws_route53_zone.example.zone_id
-  name    = "opeluther001.com"  # Replace with your desired domain name
-  type    = "A"
-
-  alias {
-    name                   = aws_cloudfront_distribution.website.domain_name
-    zone_id                = aws_cloudfront_distribution.website.hosted_zone_id
-    evaluate_target_health = false
-  }
-
-  depends_on = [aws_cloudfront_distribution.website, aws_route53_zone.example]
-}
-
-output "domain_name" {
-  value = aws_route53_zone.example.name
-}
-
-output "zone_id" {
-  value = aws_route53_zone.example.zone_id
 }
