@@ -114,7 +114,20 @@ resource "namedotcom_domain_nameservers" "eaaladejana-live" {
 
 resource "aws_s3_bucket_policy" "example-policy" {
   bucket = aws_s3_bucket.website.id
-  policy = templatefile("s3-policy.json", { bucket = "${aws_s3_bucket.website.id}" })
+  policy = <<POLICY
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "PublicReadGetObject",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::${aws_s3_bucket.website.arn}/*"
+    }
+  ]
+}
+POLICY
 }
 
 resource "aws_cloudfront_distribution" "website" {
