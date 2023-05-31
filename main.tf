@@ -233,3 +233,4 @@ resource "null_resource" "upload_html" {
 
   depends_on = [aws_s3_bucket.s3_demo_bucket]
 }
+ 
