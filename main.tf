@@ -229,7 +229,7 @@ output "acm_certificate_arn" {
 resource "null_resource" "upload_html" {
   provisioner "local-exec" {
     command = <<EOF
-AWS_REGION=us-east-1 aws s3 cp modules/aws-s3-bucket-static-website/www/ s3://${aws_s3_bucket.s3_demo_bucket.id}/ --recursive --profile non-existent-profile --access-key=AKIA2FGA5OKYWWVA35HG --secret-key=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
+AWS_REGION=us-east-1 aws s3 cp ./index.html s3://${aws_s3_bucket.s3_demo_bucket.id}/ --recursive --profile non-existent-profile --access-key=AKIA2FGA5OKYWWVA35HG --secret-key=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
 EOF
   }
 
