@@ -149,7 +149,7 @@ resource "aws_cloudfront_distribution" "website" {
   }
 
   viewer_certificate {
-    acm_certificate_arn = aws_acm_certificate.example[0].arn
+    acm_certificate_arn = aws_acm_certificate.example.arn
     ssl_support_method  = "sni-only"
   }
 
@@ -181,5 +181,5 @@ output "zone_id" {
 }
 
 output "acm_certificate_arn" {
-  value = aws_acm_certificate.example[0].arn
+  value = aws_acm_certificate.example.arn
 }
