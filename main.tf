@@ -44,12 +44,16 @@ variable "bucket_name" {
   default     = "bakri-20-15-29"
 }
 
-
+variable "common_tags" {
+  description = "Common tags to be applied to AWS resources"
+  type        = map(string)
+  default     = {}
+}
 
 resource "aws_s3_bucket" "www_bucket" {
   bucket = "www.${var.bucket_name}"
   acl    = "public-read"
-  policy = templatefile("templates/s3-policy.json", { bucket = "www.${var.bucket_name}" })
+  policy = templatefile("s3-policy.json", { bucket = "www.${var.bucket_name}" })
 
   cors_rule {
     allowed_headers = ["Authorization", "Content-Length"]
@@ -62,6 +66,7 @@ resource "aws_s3_bucket" "www_bucket" {
     index_document = "index.html"
   }
 
+  tags = var.common_tags
 }
 
 resource "aws_s3_bucket" "root_bucket" {
@@ -73,6 +78,7 @@ resource "aws_s3_bucket" "root_bucket" {
     redirect_all_requests_to = "https://www.${var.domain_name}"
   }
 
+  tags = var.common_tags
 }
 
 resource "aws_route53_zone" "website-hosted-zone" {
