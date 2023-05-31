@@ -67,8 +67,8 @@ resource "aws_s3_bucket_public_access_block" "s3_demo_bucket" {
 
 resource "aws_s3_bucket_acl" "s3_demo_bucket" {
   depends_on = [
-    aws_s3_bucket_ownership_controls.example,
-    aws_s3_bucket_public_access_block.example,
+    aws_s3_bucket_ownership_controls.s3_demo_bucket,
+    aws_s3_bucket_public_access_block.s3_demo_bucket,
   ]
 
   bucket = aws_s3_bucket.s3_demo_bucket.id
