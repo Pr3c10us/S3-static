@@ -38,8 +38,14 @@ variable "namedotcom_token" {
   default     = "56e15b07a343ebeadd3eea483ef1e13db6074aa0"
 }
 
+variable "bucket_name" {
+  description = "Name of the S3 bucket"
+  type        = string
+  default     = "bakri-20-15-29"
+}
+
 resource "aws_s3_bucket" "website" {
-  bucket = "bakri-20-15-29"
+  bucket = var.bucket_name
 }
 
 resource "aws_s3_bucket_website_configuration" "website" {
@@ -106,6 +112,11 @@ resource "namedotcom_domain_nameservers" "eaaladejana-live" {
   ]
 }
 
+resource "aws_s3_bucket_policy" "example-policy" {
+  bucket = aws_s3_bucket.website.id
+  policy = templatefile("s3-policy.json", { bucket = var.bucket_name })
+}
+
 resource "aws_cloudfront_distribution" "website" {
   origin {
     domain_name = aws_s3_bucket.website.bucket_regional_domain_name
@@ -138,7 +149,7 @@ resource "aws_cloudfront_distribution" "website" {
   }
 
   viewer_certificate {
-    acm_certificate_arn = aws_acm_certificate.example.arn
+    acm_certificate_arn = aws_acm_certificate.example[0].arn
     ssl_support_method  = "sni-only"
   }
 
@@ -170,5 +181,5 @@ output "zone_id" {
 }
 
 output "acm_certificate_arn" {
-  value = aws_acm_certificate.example.arn
+  value = aws_acm_certificate.example[0].arn
 }
