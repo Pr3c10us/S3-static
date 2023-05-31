@@ -114,7 +114,7 @@ resource "namedotcom_domain_nameservers" "eaaladejana-live" {
 
 resource "aws_s3_bucket_policy" "example-policy" {
   bucket = aws_s3_bucket.website.id
-  policy = templatefile("s3-policy.json", { bucket = var.bucket_name })
+  policy = templatefile("s3-policy.json", { bucket = "${aws_s3_bucket.website.id}" })
 }
 
 resource "aws_cloudfront_distribution" "website" {
