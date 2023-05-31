@@ -2,6 +2,15 @@ provider "aws" {
   region = "us-east-1"  # Replace with your desired AWS region
 }
 
+variable "cert" {
+  description = "SSL certificate details"
+  type        = map(object({
+    domain            = string
+    validation_method = string
+  }))
+  default     = {}
+}
+
 # Create the S3 bucket for the static website
 resource "aws_s3_bucket" "website" {
   bucket = "bakri-20-15-29"
@@ -105,6 +114,8 @@ resource "aws_cloudfront_distribution" "website" {
   }
 
   aliases = ["eaaladejana.live"]  # Replace with your desired domain name
+
+  depends_on = [aws_route53_zone.example]
 }
 
 # Create a Route53 record pointing to the CloudFront distribution
@@ -118,6 +129,8 @@ resource "aws_route53_record" "website" {
     zone_id                = aws_cloudfront_distribution.website.hosted_zone_id
     evaluate_target_health = false
   }
+
+  depends_on = [aws_cloudfront_distribution.website, aws_route53_zone.example]
 }
 
 output "domain_name" {
