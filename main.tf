@@ -61,7 +61,7 @@ resource "aws_s3_bucket" "website_bucket" {
 
   website {
     index_document = "index.html"
-    redirect_all_requests_to = "https://www.${var.domain_name}"
+    #redirect_all_requests_to = "https://www.${var.domain_name}"
   }
 
 
