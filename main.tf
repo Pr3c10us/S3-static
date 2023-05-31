@@ -44,37 +44,31 @@ variable "bucket_name" {
   default     = "bakri-20-15-29"
 }
 
+variable "common_tags" {
+  description = "Common tags to be applied to AWS resources"
+  type        = map(string)
+  default     = {}
+}
 
-
-resource "aws_s3_bucket" "www_bucket" {
-  bucket = "www.${var.bucket_name}"
+resource "aws_s3_bucket" "website_bucket" {
+  bucket = var.bucket_name
   acl    = "public-read"
-  policy = templatefile("s3-policy.json", { bucket = "www.${var.bucket_name}" })
+  policy = templatefile("templates/s3-policy.json", { bucket = var.bucket_name })
 
   cors_rule {
-    allowed_headers = ["Authorization", "Content-Length"]
-    allowed_methods = ["GET", "POST"]
+    allowed_headers = ["*"]
+    allowed_methods = ["GET", "POST", "PUT", "DELETE"]
     allowed_origins = ["https://www.${var.domain_name}"]
-    max_age_seconds = 3000
+    expose_headers  = ["ETag"]
+    max_age_seconds = 3600
   }
 
   website {
     index_document = "index.html"
-  }
-
-
-}
-
-resource "aws_s3_bucket" "root_bucket" {
-  bucket = var.bucket_name
-  acl    = "public-read"
-  policy = templatefile("s3-policy.json", { bucket = var.bucket_name })
-
-  website {
     redirect_all_requests_to = "https://www.${var.domain_name}"
   }
 
-
+  tags = var.common_tags
 }
 
 resource "aws_route53_zone" "website-hosted-zone" {
@@ -128,15 +122,15 @@ resource "namedotcom_domain_nameservers" "eaaladejana-live" {
 
 resource "aws_cloudfront_distribution" "website" {
   origin {
-    domain_name = aws_s3_bucket.www_bucket.bucket_regional_domain_name
-    origin_id   = "S3-${aws_s3_bucket.www_bucket.id}"
+    domain_name = aws_s3_bucket.website_bucket.bucket_regional_domain_name
+    origin_id   = "S3-${aws_s3_bucket.website_bucket.id}"
   }
 
   enabled             = true
   default_root_object = "index.html"
 
   default_cache_behavior {
-    target_origin_id = "S3-${aws_s3_bucket.www_bucket.id}"
+    target_origin_id = "S3-${aws_s3_bucket.website_bucket.id}"
     forwarded_values {
       query_string = false
       cookies {
