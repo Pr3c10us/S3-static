@@ -69,8 +69,6 @@ resource "aws_acm_certificate_validation" "example" {
 
 # Create the CloudFront distribution for the S3 bucket
 resource "aws_cloudfront_distribution" "website" {
-  depends_on = [null_resource.upload_html, aws_acm_certificate_validation.example]
-
   origin {
     domain_name = aws_s3_bucket.website.bucket_regional_domain_name
     origin_id   = "S3-${aws_s3_bucket.website.id}"
@@ -107,14 +105,10 @@ resource "aws_cloudfront_distribution" "website" {
   }
 
   aliases = ["eaaladejana.live"]  # Replace with your desired domain name
-
-  depends_on = [aws_route53_zone.example]
 }
 
 # Create a Route53 record pointing to the CloudFront distribution
 resource "aws_route53_record" "website" {
-  depends_on = [aws_cloudfront_distribution.website]
-
   zone_id = aws_route53_zone.example.zone_id
   name    = "eaaladejana.live"  # Replace with your desired domain name
   type    = "A"
