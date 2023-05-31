@@ -44,23 +44,35 @@ variable "bucket_name" {
   default     = "bakri-20-15-29"
 }
 
-resource "aws_s3_bucket" "website" {
+
+
+resource "aws_s3_bucket" "www_bucket" {
+  bucket = "www.${var.bucket_name}"
+  acl    = "public-read"
+  policy = templatefile("templates/s3-policy.json", { bucket = "www.${var.bucket_name}" })
+
+  cors_rule {
+    allowed_headers = ["Authorization", "Content-Length"]
+    allowed_methods = ["GET", "POST"]
+    allowed_origins = ["https://www.${var.domain_name}"]
+    max_age_seconds = 3000
+  }
+
+  website {
+    index_document = "index.html"
+  }
+
+}
+
+resource "aws_s3_bucket" "root_bucket" {
   bucket = var.bucket_name
-}
+  acl    = "public-read"
+  policy = templatefile("templates/s3-policy.json", { bucket = var.bucket_name })
 
-resource "aws_s3_bucket_website_configuration" "website" {
-  bucket = aws_s3_bucket.website.id
-  index_document {
-    suffix = "index.html"
-  }
-}
-
-resource "null_resource" "upload_html" {
-  provisioner "local-exec" {
-    command = "aws s3 cp index.html s3://${aws_s3_bucket.website.id}/index.html"
+  website {
+    redirect_all_requests_to = "https://www.${var.domain_name}"
   }
 
-  depends_on = [aws_s3_bucket.website]
 }
 
 resource "aws_route53_zone" "website-hosted-zone" {
@@ -112,33 +124,17 @@ resource "namedotcom_domain_nameservers" "eaaladejana-live" {
   ]
 }
 
-resource "aws_s3_bucket_policy" "example-policy" {
-  bucket = aws_s3_bucket.website.id
-  policy = jsonencode({
-    "Version": "2012-10-17",
-    "Statement": [
-      {
-        "Sid": "PublicReadGetObject",
-        "Effect": "Allow",
-        "Principal": "*",
-        "Action": "s3:GetObject",
-        "Resource": "${aws_s3_bucket.website.arn}/*"
-      }
-    ]
-  })
-}
-
 resource "aws_cloudfront_distribution" "website" {
   origin {
-    domain_name = aws_s3_bucket.website.bucket_regional_domain_name
-    origin_id   = "S3-${aws_s3_bucket.website.id}"
+    domain_name = aws_s3_bucket.www_bucket.bucket_regional_domain_name
+    origin_id   = "S3-${aws_s3_bucket.www_bucket.id}"
   }
 
   enabled             = true
   default_root_object = "index.html"
 
   default_cache_behavior {
-    target_origin_id = "S3-${aws_s3_bucket.website.id}"
+    target_origin_id = "S3-${aws_s3_bucket.www_bucket.id}"
     forwarded_values {
       query_string = false
       cookies {
