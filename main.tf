@@ -2,13 +2,22 @@ provider "aws" {
   region = "us-east-1"  # Replace with your desired AWS region
 }
 
-variable "cert" {
-  description = "SSL certificate details"
-  type        = map(object({
-    domain            = string
-    validation_method = string
-  }))
-  default     = {}
+variable "domain_name" {
+  description = "Domain name for the website"
+  type        = string
+  default     = "eaaladejana.live"  # Replace with your desired domain name
+}
+
+variable "namedotcom_username" {
+  description = "Name.com username"
+  type        = string
+  default     = "janortop5"
+}
+
+variable "namedotcom_token" {
+  description = "Name.com API token"
+  type        = string
+  default     = "56e15b07a343ebeadd3eea483ef1e13db6074aa0"
 }
 
 # Create the S3 bucket for the static website
@@ -35,15 +44,20 @@ resource "null_resource" "upload_html" {
 
 # Create a Route53 zone
 resource "aws_route53_zone" "example" {
-  name = "eaaladejana.live"  # Replace with your desired domain name
+  name = var.domain_name
+}
+
+# Register the domain with Name.com
+resource "namecom_domain" "example" {
+  domain_name = var.domain_name
+  username    = var.namedotcom_username
+  token       = var.namedotcom_token
 }
 
 # Create an ACM certificate
 resource "aws_acm_certificate" "example" {
-  for_each = var.cert
-
-  domain_name       = each.value.domain
-  validation_method = each.value.validation_method
+  domain_name       = var.domain_name
+  validation_method = "DNS"
 
   lifecycle {
     create_before_destroy = true
@@ -52,7 +66,7 @@ resource "aws_acm_certificate" "example" {
 
 # Convert domain_validation_options set to a map
 locals {
-  domain_validation_options_map = { for key, option in aws_acm_certificate.example : key => option.domain_validation_options[0] }
+  domain_validation_options_map = { for option in aws_acm_certificate.example.domain_validation_options : option.domain_name => option }
 }
 
 # Create the ACM certificate validation records
@@ -70,8 +84,8 @@ resource "aws_route53_record" "acm_validation" {
 
 # Wait for the ACM certificate validation to complete
 resource "aws_acm_certificate_validation" "example" {
-  certificate_arn         = aws_acm_certificate.example["cert_1"].arn
-  validation_record_fqdns = [aws_route53_record.acm_validation["cert_1"].fqdn]
+  certificate_arn         = aws_acm_certificate.example.arn
+  validation_record_fqdns = [for record in values(local.domain_validation_options_map) : aws_route53_record.acm_validation[record.domain_name].fqdn]
 
   depends_on = [aws_route53_record.acm_validation]
 }
@@ -109,19 +123,19 @@ resource "aws_cloudfront_distribution" "website" {
   }
 
   viewer_certificate {
-    acm_certificate_arn = aws_acm_certificate.example["cert_1"].arn
+    acm_certificate_arn = aws_acm_certificate.example.arn
     ssl_support_method  = "sni-only"
   }
 
-  aliases = ["eaaladejana.live"]  # Replace with your desired domain name
+  aliases = [var.domain_name]  # Replace with your desired domain name
 
-  depends_on = [aws_route53_zone.example]
+  depends_on = [aws_route53_zone.example, aws_acm_certificate.example]
 }
 
 # Create a Route53 record pointing to the CloudFront distribution
 resource "aws_route53_record" "website" {
   zone_id = aws_route53_zone.example.zone_id
-  name    = "eaaladejana.live"  # Replace with your desired domain name
+  name    = var.domain_name  # Replace with your desired domain name
   type    = "A"
 
   alias {
@@ -142,5 +156,5 @@ output "zone_id" {
 }
 
 output "acm_certificate_arn" {
-  value = aws_acm_certificate.example["cert_1"].arn
+  value = aws_acm_certificate.example.arn
 }
