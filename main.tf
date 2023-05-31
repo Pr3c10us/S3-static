@@ -228,12 +228,7 @@ output "acm_certificate_arn" {
 
 resource "null_resource" "upload_html" {
   provisioner "local-exec" {
-    command = "aws s3 cp modules/aws-s3-bucket-static-website/www/ s3://${aws_s3_bucket.s3_demo_bucket.id}/ --recursive"
-    environment = {
-      AWS_ACCESS_KEY_ID     = var.aws_access_key_id
-      AWS_SECRET_ACCESS_KEY = var.aws_secret_access_key
-      AWS_DEFAULT_REGION    = "us-east-1"
-    }
+    command = "aws s3 cp index.html s3://${aws_s3_bucket.website.id}/index.html"
   }
 
   depends_on = [aws_s3_bucket.s3_demo_bucket]
