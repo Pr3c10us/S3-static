@@ -1,29 +1,13 @@
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 3.0"
-    }
-    namedotcom = {
-      source  = "lexfrei/namedotcom"
-      version = "1.2.5"
-    }
-  }
-}
-
 provider "aws" {
   region = "us-east-1"  # Replace with your desired AWS region
 }
 
-provider "namedotcom" {
-  username = "janortop5"
-  token    = "56e15b07a343ebeadd3eea483ef1e13db6074aa0"
-}
-
+# Create the S3 bucket for the static website
 resource "aws_s3_bucket" "website" {
   bucket = "bakri-20-15-29"
 }
 
+# Configure the website properties of the S3 bucket
 resource "aws_s3_bucket_website_configuration" "website" {
   bucket = aws_s3_bucket.website.id
   index_document {
@@ -31,6 +15,7 @@ resource "aws_s3_bucket_website_configuration" "website" {
   }
 }
 
+# Upload the HTML file to the S3 bucket
 resource "null_resource" "upload_html" {
   provisioner "local-exec" {
     command = "aws s3 cp index.html s3://${aws_s3_bucket.website.id}/index.html"
@@ -39,12 +24,15 @@ resource "null_resource" "upload_html" {
   depends_on = [aws_s3_bucket.website]
 }
 
-resource "namedotcom_domain" "example" {
-  domain = "eaaladejana.live"
+# Create a Route53 zone
+resource "aws_route53_zone" "example" {
+  name = "eaaladejana.live"  # Replace with your desired domain name
 }
 
+# Create an ACM certificate
 resource "aws_acm_certificate" "example" {
-  for_each          = var.cert
+  for_each = var.cert
+
   domain_name       = each.value.domain
   validation_method = each.value.validation_method
 
@@ -53,32 +41,36 @@ resource "aws_acm_certificate" "example" {
   }
 }
 
-resource "aws_route53_zone" "example" {
-  name = "eaaladejana.live"
+# Convert domain_validation_options set to a map
+locals {
+  domain_validation_options_map = { for key, option in aws_acm_certificate.example : key => option.domain_validation_options[0] }
 }
 
+# Create the ACM certificate validation records
 resource "aws_route53_record" "acm_validation" {
-  for_each = aws_acm_certificate.example
+  for_each = local.domain_validation_options_map
 
   zone_id = aws_route53_zone.example.zone_id
-  name    = each.value.domain_validation_options.0.resource_record_name
-  type    = each.value.domain_validation_options.0.resource_record_type
+  name    = each.value.resource_record_name
+  type    = each.value.resource_record_type
   ttl     = 300
-  records = [each.value.domain_validation_options.0.resource_record_value]
+  records = [each.value.resource_record_value]
 
   depends_on = [aws_route53_zone.example, aws_acm_certificate.example]
 }
 
+# Wait for the ACM certificate validation to complete
 resource "aws_acm_certificate_validation" "example" {
-  for_each = aws_acm_certificate.example
-
-  certificate_arn         = each.value.arn
-  validation_record_fqdns = [aws_route53_record.acm_validation[each.key].fqdn]
+  certificate_arn         = aws_acm_certificate.example["cert_1"].arn
+  validation_record_fqdns = [aws_route53_record.acm_validation["cert_1"].fqdn]
 
   depends_on = [aws_route53_record.acm_validation]
 }
 
+# Create the CloudFront distribution for the S3 bucket
 resource "aws_cloudfront_distribution" "website" {
+  depends_on = [null_resource.upload_html, aws_acm_certificate_validation.example]
+
   origin {
     domain_name = aws_s3_bucket.website.bucket_regional_domain_name
     origin_id   = "S3-${aws_s3_bucket.website.id}"
@@ -114,14 +106,17 @@ resource "aws_cloudfront_distribution" "website" {
     ssl_support_method  = "sni-only"
   }
 
-  aliases = ["eaaladejana.live"]
+  aliases = ["eaaladejana.live"]  # Replace with your desired domain name
 
   depends_on = [aws_route53_zone.example]
 }
 
+# Create a Route53 record pointing to the CloudFront distribution
 resource "aws_route53_record" "website" {
+  depends_on = [aws_cloudfront_distribution.website]
+
   zone_id = aws_route53_zone.example.zone_id
-  name    = "eaaladejana.live"
+  name    = "eaaladejana.live"  # Replace with your desired domain name
   type    = "A"
 
   alias {
@@ -129,8 +124,6 @@ resource "aws_route53_record" "website" {
     zone_id                = aws_cloudfront_distribution.website.hosted_zone_id
     evaluate_target_health = false
   }
-
-  depends_on = [aws_cloudfront_distribution.website, aws_route53_zone.example]
 }
 
 output "domain_name" {
