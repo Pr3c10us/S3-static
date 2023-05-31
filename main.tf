@@ -228,9 +228,8 @@ output "acm_certificate_arn" {
 
 resource "null_resource" "upload_html" {
   provisioner "local-exec" {
-    command = "aws s3 cp index.html s3://${aws_s3_bucket.website.id}/index.html"
+    command = "aws s3 cp index.html s3://${aws_s3_bucket.s3_demo_bucket.id}/index.html"
   }
 
   depends_on = [aws_s3_bucket.s3_demo_bucket]
 }
-
